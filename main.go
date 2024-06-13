@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/TerminatorShri/RSS_Aggregator/internal/database"
 	"github.com/go-chi/chi"
@@ -39,10 +40,12 @@ func main() {
 		log.Fatal("Cannot connect to Database")
 	}
 
+	db := database.New(conn)
 	apiCfg := apiConfig {
-		DB: database.New(conn),
+		DB: db,
 	}
 	
+	go startScraping(db, 10, time.Minute)
 
 	router := chi.NewRouter()
 	router.Use(cors.Handler(cors.Options{
@@ -60,6 +63,7 @@ func main() {
 	v1Router.Get("/users", apiCfg.middlewareAuth(apiCfg.handlerGetUser))
 	v1Router.Get("/feeds", apiCfg.handlerGetFeeds)
 	v1Router.Get("/feed-follows", apiCfg.middlewareAuth(apiCfg.handlerGetFeedFollow))
+	v1Router.Get("/posts", apiCfg.middlewareAuth(apiCfg.handlerGetPostsForUser))
 	v1Router.Post("/users", apiCfg.handlerCreateUser)
 	v1Router.Post("/feeds", apiCfg.middlewareAuth(apiCfg.handlerCreateFeed))
 	v1Router.Post("/feed-follows", apiCfg.middlewareAuth(apiCfg.handlerCreateFeedFollow))
